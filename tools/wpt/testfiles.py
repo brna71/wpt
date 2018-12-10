@@ -162,9 +162,12 @@ def exclude_ignored(files, ignore_rules):
 
 
 def files_changed(revish, ignore_rules=None, include_uncommitted=False, include_new=False):
-    """Get and return files changed since current branch diverged from master,
-    excluding those that are located within any path matched by
-    `ignore_rules`."""
+    """Find files changed in certain revisions.
+
+    The function passes `revish` directly to `git diff`, so `revish` can have a
+    variety of forms; see `git diff --help` for details. Files in the diff that
+    are matched by `ignore_rules` are excluded.
+    """
     files = repo_files_changed(revish,
                                include_uncommitted=include_uncommitted,
                                include_new=include_new)
@@ -183,7 +186,7 @@ def _in_repo_root(full_path):
 def _init_manifest_cache():
     c = {}
 
-    def load(manifest_path=None):
+    def load(manifest_path=None, manifest_update=True):
         if manifest_path is None:
             manifest_path = os.path.join(wpt_root, "MANIFEST.json")
         if c.get(manifest_path):
@@ -191,7 +194,7 @@ def _init_manifest_cache():
         # cache at most one path:manifest
         c.clear()
         wpt_manifest = manifest.load_and_update(wpt_root, manifest_path, "/",
-                                                update=True)
+                                                update=manifest_update)
         c[manifest_path] = wpt_manifest
         return c[manifest_path]
     return load
@@ -199,7 +202,9 @@ def _init_manifest_cache():
 
 load_manifest = _init_manifest_cache()
 
-def affected_testfiles(files_changed, skip_dirs=None, manifest_path=None):
+
+def affected_testfiles(files_changed, skip_dirs=None,
+                       manifest_path=None, manifest_update=True):
     """Determine and return list of test files that reference changed files."""
     if skip_dirs is None:
         skip_dirs = set(["conformance-checkers", "docs", "tools"])
@@ -208,7 +213,7 @@ def affected_testfiles(files_changed, skip_dirs=None, manifest_path=None):
     # they are not part of any test.
     files_changed = [f for f in files_changed if not _in_repo_root(f)]
     nontests_changed = set(files_changed)
-    wpt_manifest = load_manifest(manifest_path)
+    wpt_manifest = load_manifest(manifest_path, manifest_update)
 
     test_types = ["testharness", "reftest", "wdspec"]
     support_files = {os.path.join(wpt_root, path)

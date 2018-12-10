@@ -65,9 +65,12 @@ def create_parser():
     return parser
 
 
-def exit(msg):
-    logger.error(msg)
-    sys.exit(1)
+def exit(msg=None):
+    if msg:
+        logger.error(msg)
+        sys.exit(1)
+    else:
+        sys.exit(0)
 
 
 def args_general(kwargs):
@@ -456,18 +459,20 @@ product_setup = {
 }
 
 
-def setup_logging(kwargs):
+def setup_logging(kwargs, default_config=None):
     import mozlog
     from wptrunner import wptrunner
 
     global logger
 
     # Use the grouped formatter by default where mozlog 3.9+ is installed
-    if hasattr(mozlog.formatters, "GroupingFormatter"):
-        default_formatter = "grouped"
-    else:
-        default_formatter = "mach"
-    wptrunner.setup_logging(kwargs, {default_formatter: sys.stdout})
+    if default_config is None:
+        if hasattr(mozlog.formatters, "GroupingFormatter"):
+            default_formatter = "grouped"
+        else:
+            default_formatter = "mach"
+        default_config = {default_formatter: sys.stdout}
+    wptrunner.setup_logging(kwargs, default_config)
     logger = wptrunner.logger
 
 
@@ -491,14 +496,18 @@ def setup_wptrunner(venv, prompt=True, install_browser=False, **kwargs):
 
     affected_revish = kwargs.pop("affected", None)
     if affected_revish is not None:
-        files_changed, _ = testfiles.files_changed(affected_revish, include_uncommitted=True, include_new=True)
-        # TODO: honor --no-manifest-update and other manifest args
-        tests_changed, tests_affected = testfiles.affected_testfiles(files_changed)
+        files_changed, _ = testfiles.files_changed(
+            affected_revish, include_uncommitted=True, include_new=True)
+        # TODO: Perhaps use wptrunner.testloader.ManifestLoader here
+        # and remove the manifest-related code from testfiles.
+        # https://github.com/web-platform-tests/wpt/issues/14421
+        tests_changed, tests_affected = testfiles.affected_testfiles(
+            files_changed, manifest_path=kwargs.get("manifest_path"), manifest_update=kwargs["manifest_update"])
         test_list = tests_changed | tests_affected
-        if not test_list:
-            # TODO: make something show up in all loggers, and also still write wpt_report.json?
-            logger.info("no affected tests")
-            sys.exit(1)
+        logger.info("Identified %s affected tests" % len(test_list))
+        if not test_list and not kwargs["test_list"]:
+            logger.info("Quitting because no tests were affected.")
+            exit()
         test_list = [os.path.relpath(item, wpt_root) for item in test_list]
         kwargs["test_list"] += test_list
 
