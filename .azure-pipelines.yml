@@ -28,7 +28,7 @@ jobs:
     displayName: 'Run ./wpt test-jobs'
 
 # Note: the affected tests jobs could depend on test_jobs.stability, but are
-# unconditional because most PRs have one or more affected tests:
+# unconditional for speed, as most PRs have one or more affected tests:
 # https://github.com/web-platform-tests/wpt/issues/13936
 
 - job: affected_macOS
@@ -36,45 +36,20 @@ jobs:
   pool:
     vmImage: 'macOS-10.13'
   steps:
-  - template: tools/ci/azure/checkout.yml
-  - template: tools/ci/azure/pip_install.yml
+  - template: tools/ci/azure/affected_tests.yml
     parameters:
-      packages: virtualenv
-  - template: tools/ci/azure/install_fonts.yml
-  - template: tools/ci/azure/install_certs.yml
-  - template: tools/ci/azure/install_safari.yml
-  - template: tools/ci/azure/update_hosts.yml
-  - script: no_proxy='*' ./wpt run --yes --no-pause --no-fail-on-unexpected --no-restart-on-unexpected --affected HEAD^1 --log-wptreport $(Build.ArtifactStagingDirectory)/wpt_report.json --channel preview safari
-    displayName: 'Run tests'
-  - task: PublishBuildArtifacts@1
-    displayName: 'Publish results'
-    inputs:
-      artifactName: 'results'
-    condition: succeededOrFailed()
+      artifactName: 'results-without-changes'
 
 - job: affected_without_changes_macOS
   displayName: 'affected tests without changes (Safari Technology Preview)'
   pool:
     vmImage: 'macOS-10.13'
   steps:
-  - template: tools/ci/azure/checkout.yml
-  # check out first parent, which is the target branch
-  - script: git checkout HEAD^1
-    displayName: 'Checkout target branch'
-  - template: tools/ci/azure/pip_install.yml
+  - template: tools/ci/azure/affected_tests.yml
     parameters:
-      packages: virtualenv
-  - template: tools/ci/azure/install_fonts.yml
-  - template: tools/ci/azure/install_certs.yml
-  - template: tools/ci/azure/install_safari.yml
-  - template: tools/ci/azure/update_hosts.yml
-  - script: no_proxy='*' ./wpt run --yes --no-pause --no-fail-on-unexpected --no-restart-on-unexpected --affected 'HEAD@{1}' --log-wptreport $(Build.ArtifactStagingDirectory)/wpt_report.json --channel preview safari
-    displayName: 'Run tests'
-  - task: PublishBuildArtifacts@1
-    displayName: 'Publish results'
-    inputs:
+      checkoutCommit: 'HEAD^1'
+      affectedRange: 'HEAD@{1}'
       artifactName: 'results-without-changes'
-    condition: succeededOrFailed()
 
 - job: infrastructure_macOS
   displayName: 'infrastructure/ tests (macOS)'
