@@ -51,7 +51,7 @@ jobs:
       artifactName: 'results'
     condition: succeededOrFailed()
 
-- job: affected_sans_changes_macOS
+- job: affected_without_changes_macOS
   displayName: 'affected tests without changes (Safari Technology Preview)'
   #dependsOn: root
   #condition: dependencies.root.outputs['test_jobs.stability']
