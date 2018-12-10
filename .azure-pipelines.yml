@@ -14,6 +14,7 @@ trigger: none # disable builds for branches
 
 jobs:
 - job: root
+  displayName: './wpt test-jobs'
   pool:
     vmImage: 'ubuntu-16.04'
   steps:
@@ -25,26 +26,6 @@ jobs:
       done
     name: test_jobs
     displayName: 'Run ./wpt test-jobs'
-  - script: |
-      # This assumes that refs/pull/1234/merge has been checked out, and that
-      # the first parent is the target branch (usually master) and the second
-      # parent the PR branch.
-      echo Build.SourceBranch=$(Build.SourceBranch)
-      echo Build.SourceBranchName=$(Build.SourceBranchName)
-      echo Build.SourceVersion=$(Build.SourceVersion)
-      echo System.PullRequest.SourceBranch=$(System.PullRequest.SourceBranch)
-      echo System.PullRequest.TargetBranch=$(System.PullRequest.TargetBranch)
-      MERGE_COMMIT=`git rev-parse HEAD`
-      echo MERGE_COMMIT=$MERGE_COMMIT
-      FIRST_PARENT=`git rev-parse HEAD^1`
-      echo FIRST_PARENT=$FIRST_PARENT
-      SECOND_PARENT=`git rev-parse HEAD^2`
-      echo SECOND_PARENT=$SECOND_PARENT
-      echo "##vso[task.setvariable variable=Merge;isOutput=true]$MERGE_COMMIT";
-      echo "##vso[task.setvariable variable=TargetBranch;isOutput=true]$FIRST_PARENT";
-      echo "##vso[task.setvariable variable=SourceBranch;isOutput=true]$SECOND_PARENT";
-    name: commits
-    displayName: 'Record commits'
 
 - job: affected_macOS
   displayName: 'affected tests (Safari Technology Preview)'
